@@ -1,106 +1,76 @@
-""" freqstack """
-
-
-class Stack:
-    """A stack implementation."""
-
-    def __init__(self):
-        """Initialize an empty stack."""
-        self._items = []
-
-    def is_empty(self):
-        """
-        Check whether the stack is empty.
-
-        :return: True if empty, False otherwise.
-        """
-        return len(self._items) == 0
-
-    def push(self, item):
-        """
-        Add an element to the top of the stack.
-
-        :param item: Element to add.
-        """
-        self._items.append(item)
-
-    def pop(self):
-        """
-        Remove and return the top element.
-
-        :raises IndexError: If the stack is empty.
-        :return: Removed element.
-        """
-        if self.is_empty():
-            raise IndexError("The stack is empty. Can't pop.")
-        return self._items.pop()
-
-    def peek(self):
-        """
-        Return the top element without removing it.
-
-        :raises IndexError: If the stack is empty.
-        :return: Top element.
-        """
-        if self.is_empty():
-            raise IndexError("The stack is empty. Can't peek.")
-        return self._items[-1]
-
-    def __len__(self):
-        """Return the number of elements in the stack."""
-        return len(self._items)
-
-    def __str__(self):
-        """Return string representation of the stack."""
-        return "Stack: " + " -> ".join(map(str, reversed(self._items)))
+from collections import deque
 
 
 class FreqStack:
-    """ freqstack """
+    """freqstack"""
 
     def __init__(self):
-        """ init """
-        self._mystack = Stack()
+        self.data = deque()
 
     def push(self, val: int) -> None:
         """ push """
-        if self._mystack.is_empty():
-            self._mystack.push((val, 1))
-        else:
-            cur = self._mystack
-            revers_stack = Stack()
-            while True:
-                v, c = self._mystack.pop()
-                if v == val:
-                    cnt = c + 1
-                    break
-                revers_stack.push((v, c))
-                if self._mystack.is_empty():
-                    cnt = 1
-                    break
-            if revers_stack.is_empty():
-                self._mystack.push((val, cnt))
-            fitted = False
-            while not revers_stack.is_empty():
-                v, c = revers_stack.pop()
-                if not fitted and (cnt < c or (cnt == c and val < v)):
-                    self._mystack.push((val, cnt))
-                    fitted = True
-                self._mystack.push((v, c))
+        self.data.append(val)
 
     def pop(self) -> int:
         """ pop """
-        val, cnt = self._mystack.pop()
-        cnt -= 1
-        if cnt > 0:
-            revers_stack = Stack()
-            while not self._mystack.is_empty():
-                v, c = self._mystack.pop()
-                if cnt >= c and v > val:
-                    revers_stack.push((v, c))
-                else:
-                    break
-            self._mystack.push((val, cnt))
-            while not revers_stack.is_empty():
-                self._mystack.push(revers_stack.pop())
-        return val
+        freq = deque()
+
+        def add_count(v: int) -> None:
+            tmp = deque()
+            found = False
+            while freq:
+                pair = freq.pop()
+                if pair[0] == v:
+                    pair[1] += 1
+                    found = True
+                tmp.append(pair)
+            while tmp:
+                freq.append(tmp.pop())
+            if not found:
+                freq.append([v, 1])
+
+        def get_count(v: int) -> int:
+            count = 0
+            tmp: deque = deque()
+            while freq:
+                pair = freq.pop()
+                tmp.append(pair)
+                if pair[0] == v:
+                    count = pair[1]
+            while tmp:
+                freq.append(tmp.pop())
+            return count
+
+        tmp: deque = deque()
+        while self.data:
+            v = self.data.pop()
+            tmp.append(v)
+            add_count(v)
+        while tmp:
+            self.data.append(tmp.pop())
+        max_freq = 0
+        tmp2: deque = deque()
+        while freq:
+            pair = freq.pop()
+            tmp2.append(pair)
+            if pair[1] > max_freq:
+                max_freq = pair[1]
+        while tmp2:
+            freq.append(tmp2.pop())
+
+        result = None
+        found = False
+        scratch: deque = deque()
+
+        while self.data:
+            v = self.data.pop()
+            if not found and get_count(v) == max_freq:
+                result = v
+                found = True
+            else:
+                scratch.appendleft(v)
+
+        while scratch:
+            self.data.append(scratch.popleft())
+
+        return result
